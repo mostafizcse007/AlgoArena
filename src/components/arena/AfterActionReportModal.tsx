@@ -3,12 +3,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  ShieldAlert,
-  CheckCircle2,
   X,
   Swords,
-  User,
-  ArrowRight,
   TrendingUp,
   Cpu,
   Timer,
@@ -198,10 +194,21 @@ export function AfterActionReportModal({
         </div>
 
         {/* Divergence Summary Box */}
-        <div className="p-3.5 rounded-xl bg-[#0B0D12] border border-white/[0.08] flex flex-col gap-1 text-xs">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-[#E5E7EB]">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
-            <span>Trace Divergence Summary</span>
+        <div className="p-3.5 rounded-xl bg-[#0B0D12] border border-white/[0.08] flex flex-col gap-2 text-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-[#E5E7EB]">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
+              <span>Trace Divergence Summary</span>
+            </div>
+            {isSabotage && (
+              <button
+                type="button"
+                onClick={onInspectDivergence}
+                className="text-xs font-medium text-sky-400 hover:text-sky-300 underline underline-offset-2 transition cursor-pointer"
+              >
+                Inspect Divergence &rarr;
+              </button>
+            )}
           </div>
           <p className="text-[#9CA3AF] leading-relaxed font-sans">
             {isSabotage

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, Pause, ChevronLeft, ChevronRight, CheckCircle2, Zap } from 'lucide-react';
+import { Play, Pause, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export function MiniDuelHeroCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);

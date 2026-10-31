@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import type { TraceFrame } from '@/lib/types/arena';
-import { Play, CheckCircle2 } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { playTick } from '@/lib/audio/sfx';
 
 export interface GraphInputData {

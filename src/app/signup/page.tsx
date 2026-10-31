@@ -9,7 +9,7 @@ import { BANGLADESH_UNIVERSITIES } from '@/lib/constants/universities';
 import { CustomSelect, SelectOption } from '@/components/ui/CustomSelect';
 import { getTier } from '@/lib/tier';
 import { Container } from '@/components/layout/Container';
-import { BrandLogo, DuelMark } from '@/components/ui/BrandLogo';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 
 export default function SignUpPage() {
   const router = useRouter();

@@ -215,6 +215,34 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
+## Deploy to Vercel
+
+AlgoArena is pre-configured for zero-configuration deployment to [Vercel](https://vercel.com/):
+
+### Option A: Deploy via Vercel Dashboard (Recommended)
+
+1. Push your repository to GitHub / GitLab / Bitbucket.
+2. In the [Vercel Dashboard](https://vercel.com/new), import your AlgoArena repository.
+3. In **Project Settings** &rarr; **Environment Variables**, add:
+   - `NEXT_PUBLIC_SUPABASE_URL` = your Supabase URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = your Supabase Anon key
+4. Click **Deploy**. Vercel will automatically build the Next.js App Router application with Turbopack and deploy the edge middleware and serverless routes.
+
+### Option B: Deploy via Vercel CLI
+
+```bash
+# Install Vercel CLI globally (or use npx)
+npm i -g vercel
+
+# Deploy preview build
+vercel
+
+# Deploy to production
+vercel --prod
+```
+
+---
+
 ## Game Modes & Mechanics
 
 ### 1. Ranked 1v1 Duels
