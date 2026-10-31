@@ -7,8 +7,6 @@ import {
   Trophy,
   Search,
   Filter,
-  ArrowUp,
-  ArrowDown,
   Minus,
   ChevronRight,
   Medal,
@@ -120,21 +118,7 @@ export default function LeaderboardPage() {
     getCampusBadge(p.university).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getRankShiftBadge = (idx: number) => {
-    const shift = idx % 3 === 0 ? +2 : idx % 3 === 1 ? -1 : 0;
-    if (shift > 0) {
-      return (
-        <span className="flex items-center text-xs text-[#34D399] font-mono tabular-nums">
-          <ArrowUp className="w-3 h-3" />+{shift}
-        </span>
-      );
-    } else if (shift < 0) {
-      return (
-        <span className="flex items-center text-xs text-rose-400 font-mono tabular-nums">
-          <ArrowDown className="w-3 h-3" />{shift}
-        </span>
-      );
-    }
+  const getRankShiftBadge = () => {
     return (
       <span className="flex items-center text-xs text-[#9CA3AF] font-mono">
         <Minus className="w-3 h-3" />
@@ -153,39 +137,10 @@ export default function LeaderboardPage() {
       : null;
   const rankDisplay = userRankNumber ? `Rank #${userRankNumber}` : 'Unranked';
 
-  // Podium Top-3 Champions: Realistic top standings with varied universities and distinct handles
-  const champ1 = profiles[0] || {
-    id: 'demo-shafiq',
-    username: 'shafiq_buet',
-    tier: getTier(2260),
-    university: 'Bangladesh University of Engineering and Technology (BUET)',
-    elo: 2260,
-    matches_won: 142,
-    matches_played: 184,
-    avatar_url: null,
-  };
-
-  const champ2 = profiles[1] || {
-    id: 'demo-tanzim',
-    username: 'tanzim_sust',
-    tier: getTier(2185),
-    university: 'Shahjalal University of Science and Technology (SUST)',
-    elo: 2185,
-    matches_won: 119,
-    matches_played: 166,
-    avatar_url: null,
-  };
-
-  const champ3 = profiles[2] || {
-    id: 'demo-tanvir',
-    username: 'tanvir_du',
-    tier: getTier(2060),
-    university: 'University of Dhaka (DU)',
-    elo: 2060,
-    matches_won: 104,
-    matches_played: 154,
-    avatar_url: null,
-  };
+  // Podium Top-3 Champions: purely derived from database profiles
+  const champ1 = profiles[0] || null;
+  const champ2 = profiles[1] || null;
+  const champ3 = profiles[2] || null;
 
   const campusOptions = [
     { value: 'All', label: 'All Campuses' },
@@ -223,174 +178,203 @@ export default function LeaderboardPage() {
       </div>
 
       {/* ===================================================================
-         TOP-3 PODIUM: TRUE 3-STEP PODIUM LAYOUT (#2 Left, #1 Center Tallest from Top, #3 Right)
-         Aligned to the exact same bottom edge with items-end
+         TOP-3 PODIUM: PURE DATA-DRIVEN PODIUM (Only renders real registered competitors)
          =================================================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-end pt-6 md:pt-10">
-        {/* RUNNER-UP #2: (Medium Height, --surface, No borders, No glow) */}
-        <div className="podium-rank-2 order-2 md:order-1 rounded-2xl bg-[#141824] p-5 md:p-6 flex flex-col justify-between transition min-h-[220px] md:min-h-[245px] shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-white/[0.06] flex items-center justify-center font-bold text-sm text-[#E5E7EB] overflow-hidden shrink-0">
-                {champ2.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={champ2.avatar_url}
-                    alt={champ2.username}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  champ2.username[0]?.toUpperCase()
-                )}
-              </div>
-              <div>
-                <Link
-                  href={`/profile/${champ2.username}`}
-                  className="font-semibold text-xs text-[#F3F4F6] hover:text-[#38BDF8] transition"
-                >
-                  @{champ2.username}
-                </Link>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[12px] font-medium text-[#9CA3AF]">
-                    {getCampusBadge(champ2.university)}
-                  </span>
-                  <span className="text-[12px] text-[#6B7280] truncate max-w-[120px] hidden sm:inline">
-                    {getTier(champ2.elo)}
-                  </span>
+      {profiles.length > 0 ? (
+        <div className={`grid grid-cols-1 ${
+          profiles.length === 1
+            ? 'max-w-md mx-auto w-full'
+            : profiles.length === 2
+            ? 'md:grid-cols-2 max-w-2xl mx-auto w-full'
+            : 'md:grid-cols-3'
+        } gap-5 items-end pt-6 md:pt-10`}>
+          {/* RUNNER-UP #2: Only if >= 2 players */}
+          {champ2 && (
+            <div className="podium-rank-2 order-2 md:order-1 rounded-2xl bg-[#141824] p-5 md:p-6 flex flex-col justify-between transition min-h-[220px] md:min-h-[245px] shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.06] flex items-center justify-center font-bold text-sm text-[#E5E7EB] overflow-hidden shrink-0">
+                    {champ2.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={champ2.avatar_url}
+                        alt={champ2.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      champ2.username[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <Link
+                      href={`/profile/${champ2.username}`}
+                      className="font-semibold text-xs text-[#F3F4F6] hover:text-[#38BDF8] transition"
+                    >
+                      @{champ2.username}
+                    </Link>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[12px] font-medium text-[#9CA3AF]">
+                        {getCampusBadge(champ2.university)}
+                      </span>
+                      <span className="text-[12px] text-[#6B7280] truncate max-w-[120px] hidden sm:inline">
+                        {getTier(champ2.elo)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                <span className="text-xs font-semibold tabular-nums text-[#E5E7EB] px-2.5 py-0.5 rounded-full bg-white/[0.06]">
+                  #2
+                </span>
               </div>
-            </div>
-            <span className="text-xs font-semibold tabular-nums text-[#E5E7EB] px-2.5 py-0.5 rounded-full bg-white/[0.06]">
-              #2
-            </span>
-          </div>
 
-          <div>
-            <div className="mt-5 pt-3.5 border-t border-white/[0.06] flex items-end justify-between">
               <div>
-                <div className="text-[12px] uppercase tracking-wider text-[#9CA3AF]">Elo Rating</div>
-                <div className="font-display text-2xl md:text-3xl font-semibold tabular-nums text-[#F3F4F6]">{champ2.elo}</div>
-              </div>
-              <div className="text-right text-xs tabular-nums text-[#9CA3AF]">
-                <span className="text-[#34D399] font-medium">{champ2.matches_won} wins</span> · {champ2.matches_played} matches
-                <div className="text-[12px] text-[#6B7280]">
-                  {Math.round((champ2.matches_won / Math.max(champ2.matches_played, 1)) * 100)}% Win Rate
+                <div className="mt-5 pt-3.5 border-t border-white/[0.06] flex items-end justify-between">
+                  <div>
+                    <div className="text-[12px] uppercase tracking-wider text-[#9CA3AF]">Elo Rating</div>
+                    <div className="font-display text-2xl md:text-3xl font-semibold tabular-nums text-[#F3F4F6]">{champ2.elo}</div>
+                  </div>
+                  <div className="text-right text-xs tabular-nums text-[#9CA3AF]">
+                    <span className="text-[#34D399] font-medium">{champ2.matches_won} wins</span> · {champ2.matches_played} matches
+                    <div className="text-[12px] text-[#6B7280]">
+                      {Math.round((champ2.matches_won / Math.max(champ2.matches_played, 1)) * 100)}% Win Rate
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* CHAMPION #1 */}
+          {champ1 && (
+            <div className="podium-rank-1 order-1 md:order-2 rounded-2xl bg-[#1D2333] p-6 md:p-7 flex flex-col justify-between transition min-h-[260px] md:min-h-[295px] z-10 relative shadow-md">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/[0.08] flex items-center justify-center font-bold text-lg md:text-xl text-white shadow-sm overflow-hidden shrink-0">
+                    {champ1.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={champ1.avatar_url}
+                        alt={champ1.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      champ1.username[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <Link
+                      href={`/profile/${champ1.username}`}
+                      className="font-semibold text-sm md:text-base text-white hover:text-[#38BDF8] transition flex items-center gap-1.5"
+                    >
+                      <span>@{champ1.username}</span>
+                      <Crown className="w-4 h-4 text-[#FBBF24]" />
+                    </Link>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="px-2 py-0.5 rounded bg-white/[0.08] text-[12px] font-medium text-amber-300">
+                        {getCampusBadge(champ1.university)}
+                      </span>
+                      <span className="text-[12px] text-[#9CA3AF]">{getTier(champ1.elo)}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold tabular-nums text-white px-3 py-1 rounded-full bg-white/[0.08] flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 text-[#FBBF24]" />
+                  #1
+                </span>
+              </div>
+
+              <div>
+                <div className="mt-4 pt-3.5 border-t border-white/[0.08] flex items-end justify-between">
+                  <div>
+                    <div className="text-[12px] uppercase tracking-wider text-[#9CA3AF] font-medium">Champion Elo</div>
+                    <div className="font-display text-4xl md:text-5xl font-bold tabular-nums text-white leading-none mt-1">
+                      {champ1.elo}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs tabular-nums text-[#9CA3AF]">
+                    <span className="text-[#34D399] font-medium">{champ1.matches_won} wins</span> · {champ1.matches_played} matches
+                    <div className="text-[12px] text-[#E5E7EB] font-medium mt-0.5">
+                      {Math.round((champ1.matches_won / Math.max(champ1.matches_played, 1)) * 100)}% Win Rate
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* THIRD PLACE #3: Only if >= 3 players */}
+          {champ3 && (
+            <div className="podium-rank-3 order-3 md:order-3 rounded-2xl bg-[#141824] p-5 flex flex-col justify-between transition min-h-[200px] md:min-h-[225px] shadow-sm">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center font-bold text-xs text-[#E5E7EB] overflow-hidden shrink-0">
+                    {champ3.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={champ3.avatar_url}
+                        alt={champ3.username}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      champ3.username[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <Link
+                      href={`/profile/${champ3.username}`}
+                      className="font-semibold text-xs text-[#F3F4F6] hover:text-[#38BDF8] transition"
+                    >
+                      @{champ3.username}
+                    </Link>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[12px] font-medium text-[#9CA3AF]">
+                        {getCampusBadge(champ3.university)}
+                      </span>
+                      <span className="text-[12px] text-[#6B7280] truncate max-w-[120px] hidden sm:inline">
+                        {getTier(champ3.elo)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-[#E5E7EB] tabular-nums px-2.5 py-0.5 rounded-full bg-white/[0.06]">
+                  #3
+                </span>
+              </div>
+
+              <div>
+                <div className="mt-5 pt-3.5 border-t border-white/[0.06] flex items-end justify-between">
+                  <div>
+                    <div className="text-[12px] uppercase tracking-wider text-[#9CA3AF]">Elo Rating</div>
+                    <div className="font-display text-2xl font-semibold tabular-nums text-[#F3F4F6]">{champ3.elo}</div>
+                  </div>
+                  <div className="text-right text-xs tabular-nums text-[#9CA3AF]">
+                    <span className="text-[#34D399] font-medium">{champ3.matches_won} wins</span> · {champ3.matches_played} matches
+                    <div className="text-[12px] text-[#6B7280]">
+                      {Math.round((champ3.matches_won / Math.max(champ3.matches_played, 1)) * 100)}% Win Rate
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* CHAMPION #1: (Larger size, slightly lighter surface --surface-raised, No borders, No glow) */}
-        <div className="podium-rank-1 order-1 md:order-2 rounded-2xl bg-[#1D2333] p-6 md:p-7 flex flex-col justify-between transition min-h-[260px] md:min-h-[295px] z-10 relative shadow-md">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3.5">
-              <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/[0.08] flex items-center justify-center font-bold text-lg md:text-xl text-white shadow-sm overflow-hidden shrink-0">
-                {champ1.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={champ1.avatar_url}
-                    alt={champ1.username}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  champ1.username[0]?.toUpperCase()
-                )}
-              </div>
-              <div>
-                <Link
-                  href={`/profile/${champ1.username}`}
-                  className="font-semibold text-sm md:text-base text-white hover:text-[#38BDF8] transition flex items-center gap-1.5"
-                >
-                  <span>@{champ1.username}</span>
-                  <Crown className="w-4 h-4 text-[#FBBF24]" />
-                </Link>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="px-2 py-0.5 rounded bg-white/[0.08] text-[12px] font-medium text-amber-300">
-                    {getCampusBadge(champ1.university)}
-                  </span>
-                  <span className="text-[12px] text-[#9CA3AF]">Grandmaster</span>
-                </div>
-              </div>
-            </div>
-            <span className="text-xs font-semibold tabular-nums text-white px-3 py-1 rounded-full bg-white/[0.08] flex items-center gap-1.5">
-              <Crown className="w-3.5 h-3.5 text-[#FBBF24]" />
-              #1
-            </span>
+      ) : !loading ? (
+        <div className="rounded-2xl bg-[#141824] border border-white/[0.06] p-8 md:p-12 text-center flex flex-col items-center justify-center gap-3.5 my-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-400/10 text-[#FBBF24] flex items-center justify-center">
+            <Trophy className="w-6 h-6" />
           </div>
-
-          <div>
-            <div className="mt-4 pt-3.5 border-t border-white/[0.08] flex items-end justify-between">
-              <div>
-                <div className="text-[12px] uppercase tracking-wider text-[#9CA3AF] font-medium">Champion Elo</div>
-                <div className="font-display text-4xl md:text-5xl font-bold tabular-nums text-white leading-none mt-1">
-                  {champ1.elo}
-                </div>
-              </div>
-              <div className="text-right text-xs tabular-nums text-[#9CA3AF]">
-                <span className="text-[#34D399] font-medium">{champ1.matches_won} wins</span> · {champ1.matches_played} matches
-                <div className="text-[12px] text-[#E5E7EB] font-medium mt-0.5">
-                  {Math.round((champ1.matches_won / Math.max(champ1.matches_played, 1)) * 100)}% Win Rate
-                </div>
-              </div>
-            </div>
-          </div>
+          <h2 className="font-display text-lg font-semibold text-[#F3F4F6]">Season 1 has officially begun</h2>
+          <p className="text-xs text-[#9CA3AF] max-w-md leading-relaxed">
+            No competitors have claimed a rank on the leaderboard yet. Sign up, enter the queue, and win your first duel to claim the #1 spot!
+          </p>
+          <Link
+            href="/signup"
+            className="mt-2 px-4 py-2 rounded-lg bg-[#F3F4F6] text-[#0B0D12] hover:bg-white font-medium text-xs transition shadow-sm"
+          >
+            Join the Arena &rarr;
+          </Link>
         </div>
-
-        {/* THIRD PLACE #3: (Compact Height, --surface, No borders, No glow) */}
-        <div className="podium-rank-3 order-3 md:order-3 rounded-2xl bg-[#141824] p-5 flex flex-col justify-between transition min-h-[200px] md:min-h-[225px] shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center font-bold text-xs text-[#E5E7EB] overflow-hidden shrink-0">
-                {champ3.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={champ3.avatar_url}
-                    alt={champ3.username}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  champ3.username[0]?.toUpperCase()
-                )}
-              </div>
-              <div>
-                <Link
-                  href={`/profile/${champ3.username}`}
-                  className="font-semibold text-xs text-[#F3F4F6] hover:text-[#38BDF8] transition"
-                >
-                  @{champ3.username}
-                </Link>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[12px] font-medium text-[#9CA3AF]">
-                    {getCampusBadge(champ3.university)}
-                  </span>
-                  <span className="text-[12px] text-[#6B7280] truncate max-w-[120px] hidden sm:inline">
-                    {getTier(champ3.elo)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <span className="text-xs font-semibold text-[#E5E7EB] tabular-nums px-2.5 py-0.5 rounded-full bg-white/[0.06]">
-              #3
-            </span>
-          </div>
-
-          <div>
-            <div className="mt-5 pt-3.5 border-t border-white/[0.06] flex items-end justify-between">
-              <div>
-                <div className="text-[12px] uppercase tracking-wider text-[#9CA3AF]">Elo Rating</div>
-                <div className="font-display text-2xl font-semibold tabular-nums text-[#F3F4F6]">{champ3.elo}</div>
-              </div>
-              <div className="text-right text-xs tabular-nums text-[#9CA3AF]">
-                <span className="text-[#34D399] font-medium">{champ3.matches_won} wins</span> · {champ3.matches_played} matches
-                <div className="text-[12px] text-[#6B7280]">
-                  {Math.round((champ3.matches_won / Math.max(champ3.matches_played, 1)) * 100)}% Win Rate
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      ) : null}
 
       {/* ===================================================================
          FILTERS: SEGMENTED DIVISION TABS & CAMPUS SELECT
@@ -538,7 +522,7 @@ export default function LeaderboardPage() {
                         >
                           #{idx + 1}
                         </span>
-                        {getRankShiftBadge(idx)}
+                        {getRankShiftBadge()}
                       </div>
                     </td>
 

@@ -71,14 +71,7 @@ export default function PlayLobbyPage() {
     const loadProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        // Fallback to demo profile for guest / evaluation exploration
-        const { data: demoProf } = await supabase
-          .from('profiles')
-          .select('*')
-          .or('username.eq.antu,username.eq.shafiq_buet,username.eq.antu_diu')
-          .limit(1)
-          .maybeSingle();
-        if (demoProf) setProfile(demoProf as Profile);
+        setProfile(null);
       } else {
         const { data } = await supabase
           .from('profiles')

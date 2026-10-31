@@ -57,7 +57,7 @@ export function CommandPalette() {
     // Check if user is logged in
     const { data: { user } } = await supabase.auth.getUser();
 
-    let playerId = user?.id;
+    const playerId = user?.id;
     let playerElo = 1200;
 
     // If not logged in, redirect to signup
