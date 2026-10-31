@@ -6,6 +6,7 @@
 
 ### Real-Time 1v1 Competitive Algorithmic Duels
 
+[![Live App](https://img.shields.io/badge/Live_App-algowar.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://algowar.vercel.app/)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4.3-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19.3.0-149eca?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict_5-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)

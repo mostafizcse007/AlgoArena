@@ -99,7 +99,10 @@ export default function PlayLobbyPage() {
 
   // Ranked Queue Join
   const handleJoinQueue = async () => {
-    if (!profile) return;
+    if (!profile) {
+      router.push('/signup?redirect=/lobby');
+      return;
+    }
     setInQueue(true);
     setQueueTime(0);
     setSearchBand(50);
@@ -161,10 +164,14 @@ export default function PlayLobbyPage() {
 
   // 1-Click Launch Instant Demo Duel (Pitch Mode)
   const handleLaunchInstantDemo = async () => {
+    if (!profile) {
+      router.push('/signup?redirect=/lobby');
+      return;
+    }
     const supabase = createClient();
     const { data: res } = await supabase.rpc('create_demo_duel', {
       p_problem_id: '081ae262-3437-4323-8913-34e5d7ebe217',
-      p_player_id: profile?.id || '00000000-0000-0000-0000-000000000001',
+      p_player_id: profile.id,
     });
 
     if (res?.match_id) {
@@ -174,7 +181,10 @@ export default function PlayLobbyPage() {
 
   // Create Custom Duel Private Room
   const handleCreateCustomRoom = async () => {
-    if (!profile) return;
+    if (!profile) {
+      router.push('/signup?redirect=/lobby');
+      return;
+    }
     setCreatingRoom(true);
     const supabase = createClient();
 

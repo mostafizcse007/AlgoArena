@@ -60,12 +60,10 @@ export function CommandPalette() {
     let playerId = user?.id;
     let playerElo = 1200;
 
-    // If not logged in, sign in anonymously or create demo match
+    // If not logged in, redirect to signup
     if (!playerId) {
-      const anonRes = await supabase.auth.signInAnonymously();
-      if (anonRes.data?.user) {
-        playerId = anonRes.data.user.id;
-      }
+      router.push('/signup?redirect=/lobby');
+      return;
     }
 
     if (playerId) {

@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'https://algoarena.dev'
+    process.env.NEXT_PUBLIC_SITE_URL || 'https://algowar.vercel.app'
   ),
   title: {
     default: 'AlgoArena: 1v1 coding duels',
