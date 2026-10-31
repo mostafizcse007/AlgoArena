@@ -1,26 +1,246 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Font Family Variables */
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* 3-Tier Calm Matte Surface Hierarchy */
+  --bg: #0B0D12;
+  --surface: #141824;
+  --surface-raised: #1D2333;
+  --surface-hover: #191F2F;
+
+  /* Backward-compatible aliases */
+  --bg-canvas: var(--bg);
+  --bg-surface-1: var(--surface);
+  --bg-surface-2: var(--surface-raised);
+  --bg-surface-hover: var(--surface-hover);
+
+  /* Subtle Structural Borders (Used for dividers and inputs only) */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  /* Single Refined Accent Color (Desaturated Sky Blue - Zero Neon Glow) */
+  --accent-primary: #38BDF8;
+  --accent-primary-hover: #0EA5E9;
+
+  /* Tier Color Tokens */
+  --tier-newbie: #94A3B8;
+  --tier-pupil: #34D399;
+  --tier-specialist: #38BDF8;
+  --tier-expert: #A855F7;
+  --tier-grandmaster: #FBBF24;
+
+  /* Semantic State Accents (Meaningful Only: Win/Pass, Loss/Fail, Queue/Timer) */
+  --state-success: #34D399;
+  --state-danger: #FB7185;
+  --state-warning: #FBBF24;
+
+  /* Neutral Text Hierarchy (WCAG AA Compliant) */
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-bg: #0B0D12;
+  --color-surface: #141824;
+  --color-surface-raised: #1D2333;
+  --color-surface-hover: #191F2F;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-canvas: var(--color-bg);
+  --color-surface-1: var(--color-surface);
+  --color-surface-2: var(--color-surface-raised);
+
+  --color-border-subtle: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
+
+  --color-sky-accent: #38BDF8;
+  --color-sky-focus: #0EA5E9;
+  --color-mint-accent: #34D399;
+  --color-coral-accent: #FB7185;
+  --color-amber-accent: #FBBF24;
+  --color-indigo-accent: #A855F7;
+
+  /* Surface and Accent aliases */
+  --color-canvas-base: #0B0D12;
+  --color-studio-panel: #141824;
+  --color-studio-elevated: #1D2333;
+  --color-obsidian: #0B0D12;
+  --color-cockpit: #141824;
+  --color-cardhover: #191F2F;
+
+  --font-display: var(--font-display), "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: var(--font-sans), "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0B0D12;
+  color: #F3F4F6;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+}
+
+.font-display {
+  font-family: var(--font-display) !important;
+}
+
+/* 3-Tier Matte Surface System */
+.surface-raised {
+  background-color: #11141C;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+}
+
+.surface-overlay {
+  background-color: #161A24;
+  border-radius: 16px;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.6);
+}
+
+.studio-island {
+  background: #11141C;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+.studio-island-pill {
+  background: #161A24;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
+}
+
+/* Standardized Keyboard Keycap */
+.keycap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem 0.375rem;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: #9CA3AF;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Monaco Active Line Highlight */
+.monaco-active-line-highlight {
+  background-color: rgba(56, 189, 248, 0.12) !important;
+  border-left: 2px solid #38BDF8;
+}
+
+/* No scrollbars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Shimmer Skeleton (Zero Layout Shift) */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(17, 20, 28, 0.6) 25%,
+    rgba(22, 26, 36, 0.9) 50%,
+    rgba(17, 20, 28, 0.6) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* macOS Pro Dark Mode Slim Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Page Transitions (150ms fade) */
+main {
+  animation: pageFade 150ms ease-out;
+}
+
+@keyframes pageFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Button Motion (100ms background transition, 0.98 press scale) */
+button, [role="button"], a {
+  transition-property: color, background-color, border-color, transform, opacity;
+  transition-duration: 100ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Podium Stagger-In on first load (#2, #3, then #1) over 400ms total */
+@keyframes podiumStagger {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.podium-rank-2 {
+  animation: podiumStagger 400ms cubic-bezier(0.16, 1, 0.3, 1) 0ms both;
+}
+
+.podium-rank-3 {
+  animation: podiumStagger 400ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+}
+
+.podium-rank-1 {
+  animation: podiumStagger 400ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
+}
+
+/* Prefers Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
