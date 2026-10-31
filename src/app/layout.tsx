@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { CommandPalette } from '@/components/layout/CommandPalette';
@@ -85,6 +86,22 @@ export default function RootLayout({
       className={`${bricolage.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#0B0D12] text-[#F3F4F6] font-sans selection:bg-sky-500/20 selection:text-sky-200">
+
+        {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-GQSLM0QZH5"
+          strategy="afterInteractive"
+        />
+
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){window.dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-GQSLM0QZH5');
+          `}
+        </Script>
+
         <ToastProvider>
           <Navbar />
           <CommandPalette />
