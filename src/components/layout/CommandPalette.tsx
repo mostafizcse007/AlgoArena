@@ -51,6 +51,7 @@ export function CommandPalette() {
   }, [open]);
 
   const launchInstantDemoDuel = async () => {
+    setOpen(false);
     setLoadingDemo(true);
     const supabase = createClient();
 
@@ -62,6 +63,7 @@ export function CommandPalette() {
 
     // If not logged in, redirect to signup
     if (!playerId) {
+      setLoadingDemo(false);
       router.push('/signup?redirect=/lobby');
       return;
     }

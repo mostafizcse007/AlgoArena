@@ -110,8 +110,8 @@ export function KeyboardShortcutsModal() {
           }
           if (key === 'p') {
             e.preventDefault();
-            router.push('/profile/antu_diu');
             setIsOpen(false);
+            router.push('/profile');
             return;
           }
           if (key === 's') {

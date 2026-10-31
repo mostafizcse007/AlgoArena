@@ -202,7 +202,7 @@ export default function LandingPage() {
             Leaderboard
           </Link>
           <a
-            href="https://github.com/algoarena/algoarena"
+            href="https://github.com/mostafizcse007"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-[#F3F4F6] transition"
