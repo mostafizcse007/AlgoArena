@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -12,13 +12,17 @@ import {
   CheckCircle2,
   KeyRound,
   AlertTriangle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Container } from '@/components/layout/Container';
 
 function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [verifyingSession, setVerifyingSession] = useState(true);
   const [hasValidSession, setHasValidSession] = useState(false);
@@ -26,18 +30,74 @@ function ResetPasswordForm() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    async function checkSession() {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+    let isMounted = true;
+    const supabase = createClient();
+
+    // 1. Subscribe to auth state changes (e.g. PASSWORD_RECOVERY or SIGNED_IN)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      if (event === 'PASSWORD_RECOVERY' || (session && event === 'SIGNED_IN')) {
         setHasValidSession(true);
-      } else {
-        setHasValidSession(false);
+        setVerifyingSession(false);
       }
-      setVerifyingSession(false);
+    });
+
+    async function checkRecoverySession() {
+      // 2. If a PKCE code is in searchParams, exchange it on the client
+      const code = searchParams.get('code');
+      if (code) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && data.session) {
+            if (isMounted) {
+              setHasValidSession(true);
+              setVerifyingSession(false);
+            }
+            return;
+          }
+        } catch (err) {
+          console.warn('PKCE exchange error on client:', err);
+        }
+      }
+
+      // 3. Check existing active session
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        if (isMounted) {
+          setHasValidSession(true);
+          setVerifyingSession(false);
+        }
+        return;
+      }
+
+      // 4. Fallback timeout to allow Supabase client to parse URL hash fragment (#access_token=...)
+      const timer = setTimeout(async () => {
+        if (!isMounted) return;
+        const {
+          data: { session: fallbackSession },
+        } = await supabase.auth.getSession();
+        if (fallbackSession) {
+          setHasValidSession(true);
+        } else {
+          setHasValidSession(false);
+        }
+        setVerifyingSession(false);
+      }, 2000);
+
+      return () => clearTimeout(timer);
     }
-    checkSession();
-  }, []);
+
+    checkRecoverySession();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,15 +124,16 @@ function ResetPasswordForm() {
       password: password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       setErrorMessage(error.message);
     } else {
       setSuccess(true);
+      // Cleanly sign out the temporary recovery session so user can log in with new credentials
+      await supabase.auth.signOut().catch(() => {});
       setTimeout(() => {
         router.push('/login?reset=success');
-      }, 1200);
+      }, 1000);
     }
   };
 
@@ -140,7 +201,7 @@ function ResetPasswordForm() {
       {success && (
         <div className="w-full p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[#34D399] text-xs font-mono text-center flex items-center justify-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
-          <span>Passcode updated! Redirecting...</span>
+          <span>Passcode updated! Redirecting to Sign In...</span>
         </div>
       )}
 
@@ -151,16 +212,28 @@ function ResetPasswordForm() {
             New Passcode
           </label>
           <div className="relative">
-            <Lock className="w-3.5 h-3.5 text-[#6B7280] absolute left-3 top-3" />
+            <Lock className="w-3.5 h-3.5 text-[#6B7280] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               minLength={6}
               placeholder="••••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#0B0D12] border border-white/[0.08] text-xs font-mono text-white placeholder-[#6B7280] focus:outline-none focus:border-sky-400/50 shadow-inner"
+              className="w-full pl-9 pr-10 py-2 rounded-lg bg-[#0B0D12] border border-white/[0.08] text-xs font-mono text-white placeholder-[#6B7280] focus:outline-none focus:border-sky-400/50 shadow-inner"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-[#9CA3AF] hover:text-[#E5E7EB] transition cursor-pointer"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -169,15 +242,15 @@ function ResetPasswordForm() {
             Confirm New Passcode
           </label>
           <div className="relative">
-            <Lock className="w-3.5 h-3.5 text-[#6B7280] absolute left-3 top-3" />
+            <Lock className="w-3.5 h-3.5 text-[#6B7280] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               minLength={6}
               placeholder="••••••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 rounded-lg bg-[#0B0D12] border border-white/[0.08] text-xs font-mono text-white placeholder-[#6B7280] focus:outline-none focus:border-sky-400/50 shadow-inner"
+              className="w-full pl-9 pr-10 py-2 rounded-lg bg-[#0B0D12] border border-white/[0.08] text-xs font-mono text-white placeholder-[#6B7280] focus:outline-none focus:border-sky-400/50 shadow-inner"
             />
           </div>
         </div>

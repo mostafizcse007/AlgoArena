@@ -39,5 +39,16 @@ export async function GET(request: Request) {
     console.error('verifyOtp token_hash error:', verifyError);
   }
 
+  // 3. Fallback for password reset recovery:
+  // If next points to /reset-password, forward directly to /reset-password
+  // preserving any code query param so client-side browser can exchange it using its local code_verifier
+  if (next.includes('/reset-password')) {
+    const targetUrl = new URL(`${origin}${next}`);
+    if (code) {
+      targetUrl.searchParams.set('code', code);
+    }
+    return NextResponse.redirect(targetUrl.toString());
+  }
+
   return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
 }

@@ -54,7 +54,7 @@ function ForgotPasswordForm() {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(targetEmail, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     setLoading(false);
@@ -74,7 +74,7 @@ function ForgotPasswordForm() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(sentEmail, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     setResending(false);
