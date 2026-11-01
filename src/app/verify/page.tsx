@@ -31,19 +31,39 @@ function VerifyForm() {
   const checkActiveSession = useCallback(async () => {
     try {
       const supabase = createClient();
+
+      // 1. If email is provided, verify directly against the database via RPC
+      if (email) {
+        const { data: isConfirmedDb, error: rpcError } = await supabase.rpc('is_email_confirmed', {
+          p_email: email.trim(),
+        });
+
+        if (!rpcError && isConfirmedDb === true) {
+          setIsConfirmed(true);
+          setTimeout(() => {
+            router.push('/lobby');
+          }, 1200);
+          return true;
+        }
+      }
+
+      // 2. Also check if active auth session is confirmed and matches this email
       const { data: { user }, error } = await supabase.auth.getUser();
       if (!error && user && user.email_confirmed_at) {
-        setIsConfirmed(true);
-        setTimeout(() => {
-          router.push('/lobby');
-        }, 1200);
-        return true;
+        // Disregard stale session from a different email
+        if (!email || user.email?.toLowerCase() === email.toLowerCase()) {
+          setIsConfirmed(true);
+          setTimeout(() => {
+            router.push('/lobby');
+          }, 1200);
+          return true;
+        }
       }
     } catch (err) {
       console.error('Session check error:', err);
     }
     return false;
-  }, [router]);
+  }, [router, email]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -53,11 +73,13 @@ function VerifyForm() {
     }, 500);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user?.email_confirmed_at) {
-        setIsConfirmed(true);
-        setTimeout(() => {
-          router.push('/lobby');
-        }, 1200);
+      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+        if (!email || session.user.email?.toLowerCase() === email.toLowerCase()) {
+          setIsConfirmed(true);
+          setTimeout(() => {
+            router.push('/lobby');
+          }, 1200);
+        }
       }
     });
 

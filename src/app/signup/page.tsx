@@ -82,6 +82,9 @@ export default function SignUpPage() {
     const affiliation = (university || 'Independent').trim();
 
     const supabase = createClient();
+    // Purge any stale session or cookies from previously deleted test accounts
+    await supabase.auth.signOut().catch(() => {});
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
