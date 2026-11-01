@@ -71,7 +71,7 @@ function ResetPasswordForm() {
     } else {
       setSuccess(true);
       setTimeout(() => {
-        router.push('/login?reset=success');
+        router.push('/');
       }, 1200);
     }
   };
@@ -140,7 +140,7 @@ function ResetPasswordForm() {
       {success && (
         <div className="w-full p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[#34D399] text-xs font-mono text-center flex items-center justify-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
-          <span>Passcode updated! Redirecting to login...</span>
+          <span>Passcode updated! Redirecting...</span>
         </div>
       )}
 

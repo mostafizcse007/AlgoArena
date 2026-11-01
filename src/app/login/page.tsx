@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/Toast';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const { showToast } = useToast();
   const verifiedNotice = searchParams.get('verified') === 'true';
   const resetNotice = searchParams.get('reset') === 'success';
@@ -76,7 +77,7 @@ function LoginForm() {
         showToast(error.message, 'error');
       }
     } else if (data.session) {
-      router.push('/lobby');
+      router.push(redirectParam || '/');
     }
   };
 
@@ -87,7 +88,7 @@ function LoginForm() {
       type: 'signup',
       email: unverifiedEmail,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/lobby`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
       },
     });
     router.push(`/verify?email=${encodeURIComponent(unverifiedEmail)}`);

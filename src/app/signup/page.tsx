@@ -89,7 +89,7 @@ export default function SignUpPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/lobby`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
         data: {
           username: username.trim(),
           display_name: fullName.trim() || username.trim(),
@@ -103,7 +103,7 @@ export default function SignUpPage() {
     if (error) {
       setErrorMessage(error.message);
     } else if (data?.session && data?.user?.email_confirmed_at) {
-      router.push('/lobby');
+      router.push('/');
     } else {
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     }

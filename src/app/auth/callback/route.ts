@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as EmailOtpType | null;
-  const next = searchParams.get('next') ?? '/lobby';
+  const next = searchParams.get('next') ?? '/';
   const error = searchParams.get('error');
   const error_description = searchParams.get('error_description');
 

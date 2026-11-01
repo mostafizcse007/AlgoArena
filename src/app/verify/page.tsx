@@ -41,7 +41,7 @@ function VerifyForm() {
         if (!rpcError && isConfirmedDb === true) {
           setIsConfirmed(true);
           setTimeout(() => {
-            router.push('/lobby');
+            router.push('/');
           }, 1200);
           return true;
         }
@@ -54,7 +54,7 @@ function VerifyForm() {
         if (!email || user.email?.toLowerCase() === email.toLowerCase()) {
           setIsConfirmed(true);
           setTimeout(() => {
-            router.push('/lobby');
+            router.push('/');
           }, 1200);
           return true;
         }
@@ -77,7 +77,7 @@ function VerifyForm() {
         if (!email || session.user.email?.toLowerCase() === email.toLowerCase()) {
           setIsConfirmed(true);
           setTimeout(() => {
-            router.push('/lobby');
+            router.push('/');
           }, 1200);
         }
       }
@@ -121,7 +121,7 @@ function VerifyForm() {
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/lobby`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
       },
     });
 
