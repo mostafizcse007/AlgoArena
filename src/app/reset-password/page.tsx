@@ -71,7 +71,7 @@ function ResetPasswordForm() {
     } else {
       setSuccess(true);
       setTimeout(() => {
-        router.push('/');
+        router.push('/login?reset=success');
       }, 1200);
     }
   };

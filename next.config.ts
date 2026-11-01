@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  async redirects() {
+    return [
+      {
+        source: "/signin",
+        destination: "/login",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

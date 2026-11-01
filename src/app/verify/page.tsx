@@ -41,7 +41,7 @@ function VerifyForm() {
         if (!rpcError && isConfirmedDb === true) {
           setIsConfirmed(true);
           setTimeout(() => {
-            router.push('/');
+            router.push('/login?verified=true');
           }, 1200);
           return true;
         }
@@ -54,7 +54,7 @@ function VerifyForm() {
         if (!email || user.email?.toLowerCase() === email.toLowerCase()) {
           setIsConfirmed(true);
           setTimeout(() => {
-            router.push('/');
+            router.push('/login?verified=true');
           }, 1200);
           return true;
         }
@@ -77,7 +77,7 @@ function VerifyForm() {
         if (!email || session.user.email?.toLowerCase() === email.toLowerCase()) {
           setIsConfirmed(true);
           setTimeout(() => {
-            router.push('/');
+            router.push('/login?verified=true');
           }, 1200);
         }
       }
@@ -121,7 +121,7 @@ function VerifyForm() {
       type: 'signup',
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/login?verified=true`,
       },
     });
 
@@ -152,7 +152,7 @@ function VerifyForm() {
         <p className="text-xs text-[#9CA3AF] max-w-sm mx-auto leading-relaxed">
           {isConfirmed ? (
             <span className="text-[#34D399] font-mono">
-              Credentials authorized. Transitioning to Cockpit...
+              Credentials authorized. Transitioning to Sign In...
             </span>
           ) : (
             <>
