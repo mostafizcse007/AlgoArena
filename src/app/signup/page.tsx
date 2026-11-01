@@ -99,7 +99,7 @@ export default function SignUpPage() {
 
     if (error) {
       setErrorMessage(error.message);
-    } else if (data?.session) {
+    } else if (data?.session && data?.user?.email_confirmed_at) {
       router.push('/lobby');
     } else {
       router.push(`/verify?email=${encodeURIComponent(email)}`);

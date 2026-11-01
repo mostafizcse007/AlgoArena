@@ -27,16 +27,16 @@ function VerifyForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
-  // Check if session is already active or confirmed
+  // Check if user is already confirmed
   const checkActiveSession = useCallback(async () => {
     try {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error && user && user.email_confirmed_at) {
         setIsConfirmed(true);
         setTimeout(() => {
           router.push('/lobby');
-        }, 800);
+        }, 1200);
         return true;
       }
     } catch (err) {
@@ -50,14 +50,14 @@ function VerifyForm() {
 
     const initialCheckTimer = setTimeout(() => {
       checkActiveSession();
-    }, 0);
+    }, 500);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || session) {
+      if (session?.user?.email_confirmed_at) {
         setIsConfirmed(true);
         setTimeout(() => {
           router.push('/lobby');
-        }, 800);
+        }, 1200);
       }
     });
 
