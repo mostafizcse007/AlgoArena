@@ -20,6 +20,7 @@ import { Container } from '@/components/layout/Container';
 import type { Profile } from '@/lib/types/arena';
 import { getTier } from '@/lib/tier';
 import { useToast } from '@/components/ui/Toast';
+import { useProfile } from '@/lib/stores/useProfileStore';
 
 // Preload Monaco Editor bundle asynchronously (Rule 3: zero loading spinner on /arena)
 const MonacoPreloader = dynamic(
@@ -43,7 +44,7 @@ const MODE_OPTIONS = [
 export default function PlayLobbyPage() {
   const router = useRouter();
   const { showToast } = useToast();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const { profile } = useProfile();
 
   // Queue state
   const [inQueue, setInQueue] = useState(false);
@@ -67,23 +68,6 @@ export default function PlayLobbyPage() {
   const queueIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setProfile(null);
-      } else {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        if (data) setProfile(data as Profile);
-      }
-    };
-
-    loadProfile();
-
     return () => {
       if (heartbeatTimerRef.current) clearInterval(heartbeatTimerRef.current);
       if (queueIntervalRef.current) clearInterval(queueIntervalRef.current);

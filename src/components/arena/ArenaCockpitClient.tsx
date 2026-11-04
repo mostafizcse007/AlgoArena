@@ -24,6 +24,7 @@ import {
   Check,
   PanelRightClose,
   Bot,
+  Lock,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { DualTraceVisualizer } from '@/components/canvas/DualTraceVisualizer';
@@ -34,6 +35,9 @@ import { runJudge } from '@/lib/judge/runner';
 import { getTier } from '@/lib/tier';
 import { playPass, playFail, playVictory, playDefeat, playHack, toggleMute, useIsMuted } from '@/lib/audio/sfx';
 import { useEditorSettings } from '@/lib/settings/editorSettings';
+import { useToast } from '@/components/ui/Toast';
+import { getBlankStarterCode } from '@/lib/judge/starterCode';
+import { profileStore } from '@/lib/stores/useProfileStore';
 import type { Match, ProblemEvalBundle, TraceFrame, JudgeResult } from '@/lib/types/arena';
 
 // Canonical Multi-Step Graph Divergence Trace for Demos & Sabotage
@@ -109,11 +113,14 @@ export function ArenaCockpitClient({
     () => false
   );
 
+  const { showToast } = useToast();
+  const isCompetitiveMode = (initialMatch.mode as string) === 'ranked' || initialMatch.mode === 'ranked_1v1';
+  const publicTestCount = evalBundle.public_samples?.length || 0;
+  const secretTestCount = evalBundle.secret_tests?.length || 0;
+  const totalAllTestCount = publicTestCount + secretTestCount;
+
   const [match, setMatch] = useState<Match>(initialMatch);
-  const [code, setCode] = useState<string>(
-    evalBundle.starter_code?.javascript ||
-      'function shortestPath(V, edges) {\n  // Write your deterministic solution here\n  return -1;\n}'
-  );
+  const [code, setCode] = useState<string>(() => getBlankStarterCode(evalBundle));
 
   // Layout mode state
   const [layoutMode, setLayoutMode] = useState<LayoutModeId>('balanced');
@@ -131,13 +138,33 @@ export function ArenaCockpitClient({
   const [cursorPos, setCursorPos] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const [copiedSampleId, setCopiedSampleId] = useState<number | string | null>(null);
 
-  // Sabotage Drawer
+  // Sabotage Drawer & 20s Cooldown timer between consecutive sabotage attempts
   const [isSabotageOpen, setIsSabotageOpen] = useState(false);
+  const [sabotageCooldown, setSabotageCooldown] = useState<number>(0);
+
+  useEffect(() => {
+    if (sabotageCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setSabotageCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sabotageCooldown]);
 
   // Execution & Judge State
   const [runningTrace, setRunningTrace] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [judgeResult, setJudgeResult] = useState<JudgeResult | null>(null);
+
+  // Single shared test evaluation state for editor header badge, toast, and status line
+  const [testEvaluationState, setTestEvaluationState] = useState<{
+    passedCount: number;
+    totalCount: number;
+    hasRun: boolean;
+  }>({
+    passedCount: 0,
+    totalCount: publicTestCount,
+    hasRun: false,
+  });
 
   // Measured ops from last run & preset tag metadata (User solution never claims Big-O)
   const [lastRunOps, setLastRunOps] = useState<number | null>(null);
@@ -173,7 +200,7 @@ export function ArenaCockpitClient({
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
   const [disconnectCountdown, setDisconnectCountdown] = useState<number>(45);
 
-  // Segmented Test Progress (0 to 6 segments)
+  // Segmented Test Progress
   const [myPassCount, setMyPassCount] = useState<number>(0);
   const [opponentPassCount, setOpponentPassCount] = useState<number>(0);
   const muted = useIsMuted();
@@ -241,7 +268,7 @@ export function ArenaCockpitClient({
   useEffect(() => {
     const draftKey = `draft:${matchId}:${problemId}`;
     get(draftKey).then((savedDraft) => {
-      if (savedDraft && typeof savedDraft === 'string') {
+      if (savedDraft && typeof savedDraft === 'string' && savedDraft.trim().length > 0) {
         setCode(savedDraft);
         if (savedDraft.trim() === evalBundle.buggy_sabotage_code.trim()) {
           loadedPresetCodeRef.current = evalBundle.buggy_sabotage_code;
@@ -259,9 +286,17 @@ export function ArenaCockpitClient({
           loadedPresetCodeRef.current = null;
           setActivePresetTag(null);
         }
+      } else {
+        const blank = getBlankStarterCode(evalBundle);
+        setCode(blank);
+        loadedPresetCodeRef.current = null;
+        setActivePresetTag(null);
+        if (editorRef.current) {
+          editorRef.current.setValue?.(blank);
+        }
       }
     });
-  }, [matchId, problemId, evalBundle.buggy_sabotage_code, evalBundle.oracle_solution, evalBundle.metadata?.algorithm, evalBundle.category]);
+  }, [matchId, problemId, evalBundle.buggy_sabotage_code, evalBundle.oracle_solution, evalBundle.metadata?.algorithm, evalBundle.category, evalBundle.starter_code]);
 
   // Reset active state when problem changes (adjusting state during render per React Compiler standard)
   const [prevProblemId, setPrevProblemId] = useState(problemId);
@@ -274,6 +309,13 @@ export function ArenaCockpitClient({
     setJudgeResult(null);
     setCurrentCanvasFrame(0);
     setDivergenceFrameIdx(undefined);
+    const blank = getBlankStarterCode(evalBundle);
+    setCode(blank);
+    setTestEvaluationState({
+      passedCount: 0,
+      totalCount: publicTestCount,
+      hasRun: false,
+    });
   }
 
   const handleCodeChange = (newCode?: string) => {
@@ -431,9 +473,21 @@ export function ArenaCockpitClient({
     setLastRunOps(totalOps);
     setLiveOps(totalOps);
 
+    // Synchronize test execution count between toast and editor header badge
+    setTestEvaluationState({
+      passedCount: result.testsPassed,
+      totalCount: result.totalTests,
+      hasRun: true,
+    });
+    setMyPassCount(result.testsPassed);
+
+    showToast(
+      `${result.testsPassed} / ${result.totalTests} passed`,
+      result.status === 'passed' ? 'success' : 'error'
+    );
+
     if (result.status === 'passed') {
       playPass();
-      setMyPassCount(result.testsPassed);
     } else {
       playFail();
     }
@@ -449,7 +503,7 @@ export function ArenaCockpitClient({
       }
       setCurrentCanvasFrame(0);
     }
-  }, [code, evalBundle.category, evalBundle.public_samples, selectedSampleIndex]);
+  }, [code, evalBundle.category, evalBundle.public_samples, selectedSampleIndex, showToast]);
 
   const handleSelectSample = (idx: number) => {
     setSelectedSampleIndex(idx);
@@ -474,6 +528,28 @@ export function ArenaCockpitClient({
       ...evalBundle.secret_tests.map((s) => ({ id: `sec_${s.id}`, input: s.input, expected_output: s.expected_output })),
     ];
 
+    // In Ranked mode, reject instant submissions if normalized code is an unmodified copy of stored reference solutions
+    const normalizeCode = (src: string) => src.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').replace(/\s+/g, ' ').trim();
+    if (isCompetitiveMode) {
+      const normCode = normalizeCode(code);
+      const normOracle = normalizeCode(evalBundle.oracle_solution);
+      const normGreedy = normalizeCode(evalBundle.buggy_sabotage_code);
+      if (normCode === normOracle || normCode === normGreedy) {
+        setSubmitting(false);
+        playFail();
+        showToast('Instant submission rejected: Unmodified copy of reference solution is prohibited in Ranked matches.', 'error');
+        setJudgeResult({
+          status: 'failed',
+          testsPassed: 0,
+          totalTests: allTests.length,
+          executionTimeMs: 0,
+          results: [],
+          error: 'Submission rejected: Unmodified copy of problem reference solution detected. Please implement your own solution.',
+        });
+        return;
+      }
+    }
+
     const result = await runJudge(code, allTests, evalBundle.category);
     setSubmitting(false);
     setJudgeResult(result);
@@ -482,6 +558,19 @@ export function ArenaCockpitClient({
     const totalOps = result.measuredOps ?? (result.results ? result.results.reduce((sum, r) => sum + (r.traces?.length || 0), 0) : 0);
     setLastRunOps(totalOps);
     setLiveOps(totalOps);
+
+    // Synchronize test execution count between toast and editor header badge
+    setTestEvaluationState({
+      passedCount: result.testsPassed,
+      totalCount: result.totalTests,
+      hasRun: true,
+    });
+    setMyPassCount(result.testsPassed);
+
+    showToast(
+      `${result.testsPassed} / ${result.totalTests} passed`,
+      result.status === 'passed' ? 'success' : 'error'
+    );
 
     const supabase = createClient();
     supabase.channel(`arena:${matchId}`).send({
@@ -501,16 +590,25 @@ export function ArenaCockpitClient({
         p_category: evalBundle.category,
       });
 
-      const delta = settleRes?.player1_delta || 18;
+      const delta = isCompetitiveMode ? (settleRes?.player1_delta ?? 18) : 0;
       setAarEloDelta(delta);
       setAarReason('tests_passed');
       setIsAAROpen(true);
+
+      if (isCompetitiveMode && settleRes?.new_elo1) {
+        profileStore.updateElo(settleRes.new_elo1, settleRes.new_peak_elo1);
+        window.dispatchEvent(
+          new CustomEvent('algoarena:profile_updated', {
+            detail: { elo: settleRes.new_elo1, peakElo: settleRes.new_peak_elo1 },
+          })
+        );
+      }
 
       setMatch((prev) => ({ ...prev, status: 'completed', winner_id: currentUserId }));
     } else {
       playFail();
     }
-  }, [code, currentUserId, evalBundle.category, evalBundle.public_samples, evalBundle.secret_tests, matchId, userTraces]);
+  }, [code, currentUserId, evalBundle.category, evalBundle.public_samples, evalBundle.secret_tests, evalBundle.oracle_solution, evalBundle.buggy_sabotage_code, isCompetitiveMode, matchId, userTraces, showToast]);
 
   // Keyboard Shortcuts (Cmd/Ctrl + Enter, Cmd/Ctrl + Shift + S, Cmd/Ctrl + Shift + H, 1/2/3 Layout switch)
   useEffect(() => {
@@ -526,6 +624,10 @@ export function ArenaCockpitClient({
         return;
       } else if (isCmdOrCtrl && e.shiftKey && e.key.toLowerCase() === 'h') {
         e.preventDefault();
+        if (sabotageCooldown > 0) {
+          showToast(`Sabotage is on cooldown (${sabotageCooldown}s remaining)`, 'error');
+          return;
+        }
         setIsSabotageOpen((prev) => !prev);
         return;
       }
@@ -555,15 +657,19 @@ export function ArenaCockpitClient({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleRunTrace, handleSubmitCode]);
+  }, [handleRunTrace, handleSubmitCode, sabotageCooldown, showToast]);
 
   // Starter Code Loader (Blank, Greedy example, Optimal example)
   const handleLoadPreset = (preset: 'blank' | 'buggy' | 'optimal') => {
+    // Lock down Greedy & Optimal presets in competitive matches
+    if (isCompetitiveMode && (preset === 'buggy' || preset === 'optimal')) {
+      showToast('Solution presets are disabled in competitive Ranked matches.', 'error');
+      return;
+    }
+
     let targetCode = '';
     if (preset === 'blank') {
-      targetCode =
-        evalBundle.starter_code?.javascript ||
-        'function shortestPath(V, edges) {\n  // Write your deterministic solution here\n  return -1;\n}';
+      targetCode = getBlankStarterCode(evalBundle);
       setCode(targetCode);
       loadedPresetCodeRef.current = null;
       setLoadedPreset(null);
@@ -610,14 +716,14 @@ export function ArenaCockpitClient({
     router.push(`/arena/${matchId}?view=${next ? 'spectator' : 'player'}`);
   };
 
-  // 1-Click Trigger Live Sabotage in Spectator Mode
+  // 1-Click Trigger Live Sabotage in Spectator Mode (Unrated)
   const handleTriggerSpectatorSabotage = () => {
     setUserTraces(DIVERGENCE_TRACES);
     setDivergenceFrameIdx(4);
     playHack();
     playVictory();
     setAarReason('spectator_demo');
-    setAarEloDelta(24);
+    setAarEloDelta(0);
     setIsAAROpen(true);
     setMatch((prev) => ({ ...prev, status: 'completed', winner_id: match.player1_id }));
   };
@@ -652,10 +758,19 @@ export function ArenaCockpitClient({
       p_category: evalBundle.category,
     });
 
-    const delta = settleRes?.player1_delta || 24;
+    const delta = isCompetitiveMode ? (settleRes?.player1_delta ?? 24) : 0;
     setAarEloDelta(delta);
     setAarReason('successful_hack');
     setIsAAROpen(true);
+
+    if (isCompetitiveMode && settleRes?.new_elo1) {
+      profileStore.updateElo(settleRes.new_elo1, settleRes.new_peak_elo1);
+      window.dispatchEvent(
+        new CustomEvent('algoarena:profile_updated', {
+          detail: { elo: settleRes.new_elo1, peakElo: settleRes.new_peak_elo1 },
+        })
+      );
+    }
 
     playVictory();
     setMatch((prev) => ({ ...prev, status: 'completed', winner_id: currentUserId }));
@@ -725,7 +840,7 @@ export function ArenaCockpitClient({
 
           {/* Quiet secondary telemetry */}
           <span className="hidden xl:inline-flex text-xs font-mono tabular-nums text-[#9CA3AF] shrink-0">
-            {myPassCount}/6 tests
+            {testEvaluationState.passedCount}/{testEvaluationState.totalCount} tests
           </span>
 
           <div
@@ -768,7 +883,7 @@ export function ArenaCockpitClient({
         <div className="flex items-center gap-2.5 min-w-0 justify-end">
           {/* Quiet secondary telemetry */}
           <span className="hidden xl:inline-flex text-xs font-mono tabular-nums text-[#9CA3AF] shrink-0">
-            {opponentPassCount}/6 tests
+            {opponentPassCount}/{testEvaluationState.totalCount} tests
           </span>
 
           <div className="flex items-center gap-1.5 shrink-0">
@@ -1226,12 +1341,15 @@ export function ArenaCockpitClient({
           >
             {/* SINGLE-LINE MACOS EDITOR HEADER TOOLBAR */}
             <div className="h-10 px-3 bg-[#11141C] border-b border-white/[0.07] flex items-center justify-between gap-2 overflow-hidden select-none shrink-0 whitespace-nowrap">
-              {/* Left Group: solution.ts + Language Badge */}
+              {/* Left Group: solution.ts + Language Badge + Synchronized Test Badge */}
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-xs text-[#9CA3AF] font-medium">
                   <span className="font-mono text-[#E5E7EB]">solution.ts</span>
                   <span className="text-xs px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-[#9CA3AF]">
                     TypeScript
+                  </span>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-sky-300 font-semibold tabular-nums">
+                    {testEvaluationState.passedCount}/{testEvaluationState.totalCount} tests
                   </span>
                 </div>
               </div>
@@ -1248,9 +1366,14 @@ export function ArenaCockpitClient({
                   className="bg-[#161B26] text-xs text-[#D1D5DB] border border-white/[0.08] rounded-md px-2 py-1 outline-none focus:border-sky-400/50 cursor-pointer"
                 >
                   <option value="blank">Blank</option>
-                  <option value="buggy">Greedy example</option>
-                  <option value="optimal">Optimal example</option>
+                  {!isCompetitiveMode && <option value="buggy">Greedy example</option>}
+                  {!isCompetitiveMode && <option value="optimal">Optimal example</option>}
                 </select>
+                {isCompetitiveMode && (
+                  <span className="hidden xl:inline text-[10px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                    Ranked: Presets locked
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1337,11 +1460,12 @@ export function ArenaCockpitClient({
                 <button
                   type="button"
                   onClick={() => setIsSabotageOpen(true)}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-400/35 transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm"
-                  title={`Hack & Defend Sabotage (${isMac ? '⌘⇧H' : 'Ctrl+Shift+H'})`}
+                  disabled={sabotageCooldown > 0}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-400/35 transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={`Hack & Defend Sabotage (${isMac ? '⌘⇧H' : 'Ctrl+Shift+H'})${sabotageCooldown > 0 ? ` - Cooldown: ${sabotageCooldown}s` : ''}`}
                 >
                   <ShieldAlert className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-                  <span>Sabotage</span>
+                  <span>{sabotageCooldown > 0 ? `Sabotage (${sabotageCooldown}s)` : 'Sabotage'}</span>
                   <kbd className="hidden lg:inline text-xs font-mono text-sky-300 bg-sky-500/20 px-1 rounded border border-sky-400/30">
                     {isMac ? '⌘⇧H' : 'Ctrl+Shift+H'}
                   </kbd>
@@ -1458,6 +1582,9 @@ export function ArenaCockpitClient({
         defenderCode={evalBundle.buggy_sabotage_code}
         oracleCode={evalBundle.oracle_solution}
         inputValidatorCode={evalBundle.input_validator}
+        isCompetitive={isCompetitiveMode}
+        cooldownSeconds={sabotageCooldown}
+        onSabotageAttempt={() => setSabotageCooldown(20)}
         onSuccessfulHack={handleSabotageSuccess}
       />
 
@@ -1465,6 +1592,7 @@ export function ArenaCockpitClient({
       <AfterActionReportModal
         isOpen={isAAROpen}
         onClose={() => setIsAAROpen(false)}
+        isUnrated={!isCompetitiveMode}
         reason={aarReason}
         player1={{
           username: match.player1?.username || 'antu',

@@ -25,6 +25,7 @@ export interface AfterActionReportModalProps {
     eloBefore?: number | null;
   } | null;
   eloDelta?: number;
+  isUnrated?: boolean;
   runtimeMs?: number;
   operationsCount?: number;
   opponentOpsCount?: number;
@@ -41,6 +42,7 @@ export function AfterActionReportModal({
   player1,
   player2,
   eloDelta = 18,
+  isUnrated = false,
   runtimeMs = 4,
   operationsCount = 14,
   opponentOpsCount = 43,
@@ -49,8 +51,9 @@ export function AfterActionReportModal({
   onInspectDivergence,
   onLaunchNextDuel,
 }: AfterActionReportModalProps) {
+  const effectiveDelta = isUnrated ? 0 : eloDelta;
   const eloBefore = player1.eloBefore || 1844;
-  const eloAfter = eloBefore + eloDelta;
+  const eloAfter = eloBefore + effectiveDelta;
 
   const [displayedElo, setDisplayedElo] = useState(eloBefore);
   const [progressWidth, setProgressWidth] = useState(0);
@@ -117,35 +120,40 @@ export function AfterActionReportModal({
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
         {/* Modal Header & Result Title */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className={`text-xs font-semibold tracking-wider uppercase font-mono ${
-              eloDelta > 0 ? 'text-[#34D399]' : eloDelta === 0 ? 'text-[#FBBF24]' : 'text-rose-400'
-            }`}>
-              {reason === 'successful_hack'
-                ? 'Adversarial Counterexample'
-                : reason === 'spectator_demo'
-                ? 'Spectator Demonstration'
-                : 'Canonical Verification'}
-            </span>
-            <button
-              onClick={onClose}
-              className="p-1 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-white/[0.05] transition cursor-pointer"
-              aria-label="Close report"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+        {(() => {
+          const isVictory = reason === 'tests_passed' || reason === 'successful_hack' || (!isUnrated && eloDelta > 0);
+          const isDraw = !isVictory && eloDelta === 0 && !isUnrated;
+          const statusColor = isVictory ? 'text-[#34D399]' : isDraw ? 'text-[#FBBF24]' : 'text-rose-400';
+          const outcomeTitle = isVictory ? 'Victory' : reason === 'spectator_demo' ? 'Completed' : isDraw ? 'Draw' : 'Defeat';
 
-          <h2
-            id="after-action-title"
-            className={`font-display text-4xl sm:text-5xl font-bold tracking-tight ${
-              eloDelta > 0 ? 'text-[#34D399]' : eloDelta === 0 ? 'text-[#FBBF24]' : 'text-rose-400'
-            }`}
-          >
-            {eloDelta > 0 ? 'Victory' : eloDelta === 0 ? 'Draw' : 'Defeat'}
-          </h2>
-        </div>
+          return (
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold tracking-wider uppercase font-mono ${statusColor}`}>
+                  {reason === 'successful_hack'
+                    ? 'Adversarial Counterexample'
+                    : reason === 'spectator_demo'
+                    ? 'Spectator Demonstration'
+                    : 'Canonical Verification'}
+                </span>
+                <button
+                  onClick={onClose}
+                  className="p-1 rounded-lg text-[#9CA3AF] hover:text-white hover:bg-white/[0.05] transition cursor-pointer"
+                  aria-label="Close report"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <h2
+                id="after-action-title"
+                className={`font-display text-4xl sm:text-5xl font-bold tracking-tight ${statusColor}`}
+              >
+                {outcomeTitle}
+              </h2>
+            </div>
+          );
+        })()}
 
         {/* Animated Tabular Elo Roll-Up Card */}
         <div className="p-4 rounded-xl bg-[#0B0D12] border border-white/[0.08] flex flex-col gap-3">
@@ -154,20 +162,26 @@ export function AfterActionReportModal({
               <TrendingUp className="w-4 h-4 text-sky-400" />
               <span className="text-xs font-medium text-[#E5E7EB]">Rating Update</span>
             </div>
-            <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border tabular-nums ${
-              eloDelta >= 0
-                ? 'bg-emerald-500/10 text-[#34D399] border-emerald-500/20'
-                : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-            }`}>
-              {eloDelta >= 0 ? `+${eloDelta}` : `${eloDelta}`} Elo
-            </span>
+            {isUnrated ? (
+              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded border tabular-nums bg-amber-500/10 text-amber-300 border-amber-500/20">
+                Unrated (+0 Elo)
+              </span>
+            ) : (
+              <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border tabular-nums ${
+                eloDelta >= 0
+                  ? 'bg-emerald-500/10 text-[#34D399] border-emerald-500/20'
+                  : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+              }`}>
+                {eloDelta >= 0 ? `+${eloDelta}` : `${eloDelta}`} Elo
+              </span>
+            )}
           </div>
 
           <div className="flex items-baseline justify-between font-mono">
             <div className="font-display text-3xl font-bold tracking-tight text-[#F3F4F6] tabular-nums">
-              {displayedElo}{' '}
+              {isUnrated ? eloBefore : displayedElo}{' '}
               <span className="text-xs font-normal text-[#9CA3AF] ml-1">
-                (was {eloBefore})
+                {isUnrated ? '(Unrated Match)' : `(was ${eloBefore})`}
               </span>
             </div>
             <div className="text-xs text-[#9CA3AF]">

@@ -36,6 +36,49 @@ export function ProfileClient({
   const [profile, setProfile] = useState<Profile>(initialProfile);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [selectedReplayMatch, setSelectedReplayMatch] = useState<Match | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; username?: string } | null>(null);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+
+  // Client-side auth hydration to separate public profile reads from mutation authorization
+  React.useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUser({
+          id: user.id,
+          username: user.user_metadata?.username || (user.id === initialProfile.id ? initialProfile.username : undefined),
+        });
+      } else {
+        setCurrentUser(null);
+      }
+      setIsAuthLoaded(true);
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setCurrentUser({
+          id: session.user.id,
+          username: session.user.user_metadata?.username,
+        });
+      } else {
+        setCurrentUser(null);
+      }
+      setIsAuthLoaded(true);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [initialProfile.id, initialProfile.username]);
+
+  // Restrict account-mutation UI strictly to profile owner once auth is hydrated
+  const isProfileOwner = isAuthLoaded
+    ? Boolean(
+        currentUser &&
+          (currentUser.id === profile.id ||
+            (currentUser.username && currentUser.username.toLowerCase() === profile.username.toLowerCase()))
+      )
+    : isOwner;
 
 
 
@@ -91,7 +134,7 @@ export function ProfileClient({
               )}
             </div>
 
-            {isOwner && (
+            {isProfileOwner && (
               <label className="absolute inset-0 bg-[#0B0D12]/75 rounded-xl opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center cursor-pointer transition text-xs text-white">
                 {uploadingAvatar ? (
                   <Loader2 className="w-4 h-4 animate-spin text-[#38BDF8]" />
@@ -130,7 +173,7 @@ export function ProfileClient({
                     <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getTierBadge(profile.elo)}`}>
                       {getTier(profile.elo)}
                     </span>
-                    {isOwner && (
+                    {isProfileOwner && (
                       <Link
                         href="/settings"
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-[#9CA3AF] hover:text-white hover:bg-white/[0.05] border border-white/[0.08] transition"

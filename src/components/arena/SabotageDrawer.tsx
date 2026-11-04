@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldAlert, X, Zap, Loader2, AlertTriangle, Flame } from 'lucide-react';
+import { ShieldAlert, X, Zap, Loader2, AlertTriangle, Flame, Lock } from 'lucide-react';
 import { playHack, playPass, playFail } from '@/lib/audio/sfx';
 
 interface SabotageDrawerProps {
@@ -11,6 +11,9 @@ interface SabotageDrawerProps {
   defenderCode: string;
   oracleCode: string;
   inputValidatorCode: string;
+  isCompetitive?: boolean;
+  cooldownSeconds?: number;
+  onSabotageAttempt?: () => void;
   onSuccessfulHack: (adversarialInput: Record<string, unknown>, attackerOracleOutput: unknown, defenderOutput: unknown) => void;
 }
 
@@ -31,10 +34,15 @@ export function SabotageDrawer({
   defenderCode,
   oracleCode,
   inputValidatorCode,
+  isCompetitive = false,
+  cooldownSeconds = 0,
+  onSabotageAttempt,
   onSuccessfulHack,
 }: SabotageDrawerProps) {
-  const [adversarialJson, setAdversarialJson] = useState<string>(
-    JSON.stringify(GREEDY_TRAP_COUNTEREXAMPLE, null, 2)
+  const [adversarialJson, setAdversarialJson] = useState<string>(() =>
+    isCompetitive
+      ? '{\n  \n}'
+      : JSON.stringify(GREEDY_TRAP_COUNTEREXAMPLE, null, 2)
   );
   const [evaluating, setEvaluating] = useState(false);
   const [resultMessage, setResultMessage] = useState<{ status: 'success' | 'defended' | 'invalid'; text: string; details?: string } | null>(null);
@@ -42,8 +50,11 @@ export function SabotageDrawer({
   if (!isOpen) return null;
 
   const handleLaunchSabotage = () => {
+    if (cooldownSeconds > 0) return;
+
     setEvaluating(true);
     setResultMessage(null);
+    onSabotageAttempt?.();
 
     try {
       const parsedInput = JSON.parse(adversarialJson);
@@ -149,7 +160,9 @@ export function SabotageDrawer({
           <ShieldAlert className="w-4 h-4 text-sky-400 shrink-0" />
           <div>
             <div className="font-display font-semibold text-xs text-[#F3F4F6]">Hack &amp; Defend Sabotage</div>
-            <div className="text-[11px] text-[#9CA3AF]">Adversarial Test Injection</div>
+            <div className="text-[11px] text-[#9CA3AF]">
+              {isCompetitive ? 'Ranked Mode (Manual Adversarial Input)' : 'Adversarial Test Injection'}
+            </div>
           </div>
         </div>
         <button
@@ -164,7 +177,9 @@ export function SabotageDrawer({
       {/* Body */}
       <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto text-xs">
         <p className="text-[#9CA3AF] leading-relaxed text-xs font-sans">
-          Submit an input that breaks your opponent&apos;s solution.
+          {isCompetitive
+            ? 'Construct a deterministic counterexample that conforms to the problem input schema and causes the opponent solution to fail or diverge.'
+            : "Submit an input that breaks your opponent's solution."}
         </p>
 
         <div>
@@ -172,23 +187,39 @@ export function SabotageDrawer({
             <label className="text-[#9CA3AF] text-xs font-medium">
               Adversarial JSON Parameters:
             </label>
-            <button
-              type="button"
-              onClick={() => setAdversarialJson(JSON.stringify(GREEDY_TRAP_COUNTEREXAMPLE, null, 2))}
-              className="text-xs px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-sky-300 border border-white/[0.08] transition cursor-pointer flex items-center gap-1"
-              title="Load counterexample where Greedy returns 20 vs Oracle 6"
-            >
-              <Zap className="w-3 h-3 text-sky-400" />
-              <span>Load Greedy Trap</span>
-            </button>
+            {!isCompetitive ? (
+              <button
+                type="button"
+                onClick={() => setAdversarialJson(JSON.stringify(GREEDY_TRAP_COUNTEREXAMPLE, null, 2))}
+                className="text-xs px-2 py-0.5 rounded-md bg-white/[0.04] hover:bg-white/[0.08] text-sky-300 border border-white/[0.08] transition cursor-pointer flex items-center gap-1"
+                title="Load counterexample where Greedy returns 20 vs Oracle 6"
+              >
+                <Zap className="w-3 h-3 text-sky-400" />
+                <span>Load Greedy Trap</span>
+              </button>
+            ) : (
+              <span className="text-[11px] text-amber-400/80 flex items-center gap-1 font-mono">
+                <Lock className="w-3 h-3" />
+                <span>Presets Locked (Ranked)</span>
+              </span>
+            )}
           </div>
           <textarea
             rows={8}
             value={adversarialJson}
             onChange={(e) => setAdversarialJson(e.target.value)}
+            placeholder='{\n  "nums": [1, 5, 2]\n}'
             className="w-full p-3 rounded-lg bg-[#0B0D12] border border-white/[0.08] text-[#F3F4F6] font-mono text-xs focus:outline-none focus:border-sky-400/50 resize-none shadow-inner"
           />
         </div>
+
+        {/* Cooldown Alert Banner */}
+        {cooldownSeconds > 0 && (
+          <div className="p-2.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs flex items-center gap-2 font-mono">
+            <ShieldAlert className="w-4 h-4 text-sky-400 shrink-0" />
+            <span>Sabotage cooldown active: {cooldownSeconds}s remaining</span>
+          </div>
+        )}
 
         {/* Feedback Banner */}
         {resultMessage && (
@@ -213,13 +244,18 @@ export function SabotageDrawer({
 
         <button
           onClick={handleLaunchSabotage}
-          disabled={evaluating}
+          disabled={evaluating || cooldownSeconds > 0}
           className="w-full py-2.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-400/30 disabled:opacity-50 font-medium text-xs flex items-center justify-center gap-2 transition cursor-pointer mt-auto"
         >
           {evaluating ? (
             <>
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span>Simulating Adversarial Probe...</span>
+            </>
+          ) : cooldownSeconds > 0 ? (
+            <>
+              <ShieldAlert className="w-3.5 h-3.5 text-sky-400" />
+              <span>Sabotage Cooldown ({cooldownSeconds}s)</span>
             </>
           ) : (
             <>

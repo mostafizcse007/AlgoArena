@@ -23,6 +23,7 @@ import { Container } from '@/components/layout/Container';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 import type { Profile } from '@/lib/types/arena';
 import { getTier, getTierBadge } from '@/lib/tier';
+import { useProfile } from '@/lib/stores/useProfileStore';
 
 const emptySubscribe = () => () => {};
 
@@ -42,12 +43,19 @@ function detectIsMac(): boolean {
 
 export function Navbar() {
   const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const pathname = usePathname();
+  const { profile, setProfile } = useProfile();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [avatarLoadError, setAvatarLoadError] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement | null>(null);
   const muted = useIsMuted();
+
+  // Close account and mobile menus on route transition
+  useEffect(() => {
+    setIsAccountMenuOpen(false);
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // Platform detection for keyboard shortcut (Ctrl K on Windows/Linux, ⌘K on macOS)
   const isMac = useSyncExternalStore(
@@ -79,62 +87,17 @@ export function Navbar() {
     };
   }, [isAccountMenuOpen]);
 
-  useEffect(() => {
-    const supabase = createClient();
-
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        if (data) {
-          const profileData = { ...(data as Profile) };
-          // If profile.avatar_url is missing, fallback to user_metadata (e.g. OAuth picture)
-          if (!profileData.avatar_url) {
-            const metaAvatar =
-              (user.user_metadata?.avatar_url as string | undefined) ||
-              (user.user_metadata?.picture as string | undefined) ||
-              null;
-            if (metaAvatar) {
-              profileData.avatar_url = metaAvatar;
-            }
-          }
-          setProfile(profileData);
-          setAvatarLoadError(false);
-        }
-      } else {
-        setProfile(null);
-      }
-    };
-
-    fetchUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
-      fetchUser();
-    });
-
-    const handleProfileUpdate = () => {
-      fetchUser();
-    };
-    window.addEventListener('algoarena:profile_updated', handleProfileUpdate);
-
-    return () => {
-      authListener.subscription.unsubscribe();
-      window.removeEventListener('algoarena:profile_updated', handleProfileUpdate);
-    };
-  }, []);
-
   const handleMuteToggle = () => {
     toggleMute();
   };
 
   const openPalette = () => {
     window.dispatchEvent(new CustomEvent('algoarena:open_palette'));
+  };
+
+  const navigateTo = (href: string) => {
+    setIsAccountMenuOpen(false);
+    router.push(href);
   };
 
   const handleSignOut = async () => {
@@ -145,9 +108,6 @@ export function Navbar() {
     router.push('/');
   };
 
-
-
-  const pathname = usePathname();
   const normalizedPath = pathname?.replace(/\/$/, '') || '';
   const isAuthRoute =
     normalizedPath === '/login' ||
@@ -319,7 +279,10 @@ export function Navbar() {
                   <Link
                     href={`/profile/${profile.username}`}
                     role="menuitem"
-                    onClick={() => setIsAccountMenuOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigateTo(`/profile/${profile.username}`);
+                    }}
                     className="w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#D1D5DB] hover:text-white hover:bg-white/[0.06] transition flex items-center gap-2 cursor-pointer"
                   >
                     <User className="w-3.5 h-3.5 text-[#9CA3AF]" />
@@ -330,7 +293,10 @@ export function Navbar() {
                   <Link
                     href="/settings"
                     role="menuitem"
-                    onClick={() => setIsAccountMenuOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigateTo('/settings');
+                    }}
                     className="w-full px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#D1D5DB] hover:text-white hover:bg-white/[0.06] transition flex items-center gap-2 cursor-pointer"
                   >
                     <Settings className="w-3.5 h-3.5 text-[#9CA3AF]" />
